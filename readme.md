@@ -28,11 +28,7 @@ to get the complementary region (`4π − interior`).
 ## Installing
 
 Wheels aren't on PyPI yet, but you can install straight from the git
-repo with either pip or uv. You'll need a Zig 0.15.2+ compiler on
-PATH (`brew install zig` on macOS, see
-[ziglang.org](https://ziglang.org/learn/getting-started/) otherwise).
-The build pulls the `sparea_zig` source over the network from the URL
-pinned in `src/zig/build.zig.zon`.
+repo with either pip or uv:
 
 ```sh
 # regular pip
@@ -45,10 +41,12 @@ uv add git+https://github.com/ajfriend/sparea_py.git
 uv pip install git+https://github.com/ajfriend/sparea_py.git
 ```
 
-Both code paths run the same hatchling build hook
-(`src/hatch_build.py`), which shells out to `zig build` to compile
+The Zig toolchain is pulled in automatically via the `ziglang` PyPI
+wheel listed in `[build-system].requires` — no host-level Zig install
+needed. The hatchling build hook (`src/hatch_build.py`) compiles
 `libsparea.{dylib,so,dll}` and bundles it into the wheel before pip
-installs it.
+installs it. The upstream `sparea_zig` source is fetched over the
+network from the URL pinned in `src/zig/build.zig.zon`.
 
 See [`dev.md`](dev.md) for architecture, layout, and contributor
 notes.

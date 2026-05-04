@@ -1,8 +1,5 @@
 [build-system]
-# `ziglang` ships the Zig compiler as a Python wheel (puts `zig` on
-# the build-env PATH). Listing it here means `pip install .`,
-# `uv build`, and cibuildwheel all get a working Zig toolchain in
-# their isolated build env without any host-level setup.
+# ziglang gives the build env a Zig toolchain — no host install needed.
 requires = ["hatchling", "ziglang>=0.15.2"]
 build-backend = "hatchling.build"
 
@@ -33,15 +30,11 @@ branch = true
 [tool.coverage.paths]
 sparea = ["src/sparea", "*/site-packages/sparea"]
 
-# The `custom` build hook (hatch_build.py) runs `zig build` and stages
-# libsparea.* into src/sparea/ at wheel-build time. It's .gitignore'd,
-# so it's also listed under `artifacts` to force-include in wheel + sdist.
+# libsparea.* is .gitignore'd; force-include it in wheel/sdist.
 [tool.hatch.build]
 artifacts = ["src/sparea/libsparea.*"]
 
-# Scope the zig-build hook to the wheel target only. Sdists are
-# source-only — running zig there is wasteful and would force the
-# sdist build env to have ziglang available.
+# Scope to wheel target — sdists are source-only.
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "src/hatch_build.py"
 
@@ -57,8 +50,9 @@ include = [
 ]
 
 [tool.cibuildwheel]
-# We require Python 3.11+ via project.requires-python; cibuildwheel
-# auto-skips older CPythons, so just exclude PyPy here.
 skip = "pp*"
-test-requires = ["pytest", "pytest-cov", "numpy"]
-test-command = "pytest {project}/tests"
+test-requires = ["pytest", "numpy"]
+# `--no-cov` because the coverage gate runs once in test.yml; running
+# it inside every cibuildwheel test env would just repeat the work
+# (and `pytest-cov` isn't even in test-requires here).
+test-command = "pytest {project}/tests --no-cov"

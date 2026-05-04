@@ -19,6 +19,7 @@ src/sparea/libsparea.*
 # Zig build artifacts
 zig-out/
 .zig-cache/
+zig-pkg/
 
 # uv lockfile — opt in if you want it tracked
 uv.lock
