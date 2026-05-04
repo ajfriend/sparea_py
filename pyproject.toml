@@ -1,5 +1,9 @@
 [build-system]
-requires = ["hatchling"]
+# `ziglang` ships the Zig compiler as a Python wheel (puts `zig` on
+# the build-env PATH). Listing it here means `pip install .`,
+# `uv build`, and cibuildwheel all get a working Zig toolchain in
+# their isolated build env without any host-level setup.
+requires = ["hatchling", "ziglang>=0.15.2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -48,3 +52,11 @@ include = [
     "justfile",
     "readme.md",
 ]
+
+[tool.cibuildwheel]
+build-frontend = "build[uv]"
+# We require Python 3.11+ via project.requires-python; cibuildwheel
+# auto-skips older CPythons, so just exclude PyPy here.
+skip = "pp*"
+test-requires = ["pytest", "pytest-cov", "numpy"]
+test-command = "pytest {project}/tests"

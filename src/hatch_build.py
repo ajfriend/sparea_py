@@ -23,6 +23,12 @@ class ZigBuildHook(BuildHookInterface):
         zig_dir = root / "src" / "zig"
         pkg_dir = root / "src" / "sparea"
 
+        # We're shipping a compiled artifact; tell hatchling to emit a
+        # platform-tagged wheel (cp3X-cp3X-<platform>) instead of the
+        # default py3-none-any.
+        build_data["pure_python"] = False
+        build_data["infer_tag"] = True
+
         subprocess.check_call(
             ["zig", "build", "-Doptimize=ReleaseFast"],
             cwd=zig_dir,

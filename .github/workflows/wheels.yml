@@ -1,0 +1,87 @@
+name: wheels
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+concurrency:
+  group: wheels-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  sdist:
+    name: build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Build sdist
+        run: uv build --sdist
+
+      # Round-trip test: build the wheel from the sdist (not from the
+      # local checkout) and run the test suite against it.
+      - name: Test sdist
+        run: |
+          uv venv test-env
+          uv pip install --python test-env/bin/python --no-cache dist/*.tar.gz pytest pytest-cov numpy
+          test-env/bin/pytest
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  wheels:
+    name: ${{ matrix.os }} (${{ matrix.archs }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            archs: x86_64
+          - os: ubuntu-24.04-arm
+            archs: aarch64
+          - os: macos-13         # Intel
+            archs: x86_64
+          - os: macos-latest     # Apple Silicon
+            archs: arm64
+          - os: windows-latest
+            archs: AMD64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # cibuildwheel builds + tests each wheel in an isolated env. Build
+      # config (test command, skip patterns, build frontend) lives in
+      # [tool.cibuildwheel] in pyproject.toml. The Zig compiler comes in
+      # via build-system.requires (`ziglang`), so no host-level setup
+      # is needed.
+      - uses: pypa/cibuildwheel@v3.4.1
+        env:
+          CIBW_ARCHS: ${{ matrix.archs }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.archs }}
+          path: wheelhouse/*.whl
+
+  # Stops short of publishing — the to-pypi job below is gated on a
+  # release event AND would still need a trusted-publisher config or
+  # PYPI_API_TOKEN secret. Disabled until you're ready to push to PyPI.
+  # to-pypi:
+  #   needs: [sdist, wheels]
+  #   if: github.event_name == 'release' && github.event.action == 'published'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v6
+  #       with: { merge-multiple: true, path: dist }
+  #     - uses: pypa/gh-action-pypi-publish@v1
