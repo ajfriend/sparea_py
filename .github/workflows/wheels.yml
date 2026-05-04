@@ -68,3 +68,22 @@ jobs:
           name: wheels-${{ matrix.os }}-${{ matrix.archs }}
           path: wheelhouse/*.whl
           compression-level: 0
+
+  to-pypi:
+    name: publish to PyPI
+    needs: [sdist, wheels]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/sparea
+    permissions:
+      id-token: write   # required for OIDC trusted publishing
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: "{wheels-*,sdist}"
+          merge-multiple: true
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
