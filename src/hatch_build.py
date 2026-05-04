@@ -28,12 +28,20 @@ class ZigBuildHook(BuildHookInterface):
             cwd=zig_dir,
         )
 
-        copied = []
-        for lib in (zig_dir / "zig-out" / "lib").glob("libsparea.*"):
-            dest = pkg_dir / lib.name
-            shutil.copy2(lib, dest)
-            copied.append(dest.name)
-        if not copied:
-            raise RuntimeError(
-                f"zig build produced no libsparea.* in {zig_dir / 'zig-out' / 'lib'}"
-            )
+        # Zig drops the lib in different places per platform:
+        #   linux:   zig-out/lib/libsparea.so
+        #   macos:   zig-out/lib/libsparea.dylib
+        #   windows: zig-out/bin/sparea.dll  (no "lib" prefix, in bin/)
+        # On Windows, rename to libsparea.dll so the Python ctypes loader
+        # can use a single naming scheme across all platforms.
+        zig_out = zig_dir / "zig-out"
+        candidates = [
+            *(zig_out / "lib").glob("libsparea.dylib"),
+            *(zig_out / "lib").glob("libsparea.so"),
+            *(zig_out / "bin").glob("sparea.dll"),
+        ]
+        if not candidates:
+            raise RuntimeError(f"zig build produced no shared library in {zig_out}")
+        for lib in candidates:
+            target = lib.name if lib.name.startswith("lib") else f"lib{lib.name}"
+            shutil.copy2(lib, pkg_dir / target)
