@@ -20,15 +20,6 @@ ci-test:
 wheel:
     uv build
 
-# Bump the pinned sparea_zig version.
-bump version:
-    cd src/zig && zig fetch --save=sparea https://github.com/ajfriend/sparea_zig/archive/refs/tags/{{version}}.tar.gz
-
-# Rebuild libsparea.* in src/sparea/ standalone (no uv needed).
-build:
-    cd src/zig && zig build -Doptimize=ReleaseFast
-    cp src/zig/zig-out/lib/libsparea.* src/sparea/
-
 purge:
     just _rm .venv
     just _rm '*.pytest_cache'
