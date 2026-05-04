@@ -12,8 +12,8 @@ build/
 dist/
 *.egg-info/
 
-# Bundled shared library (rebuilt by setup.py)
-sparea/libsparea.*
+# Bundled shared library (produced by `just build`)
+src/sparea/libsparea.*
 
 # Zig build artifacts
 zig-out/

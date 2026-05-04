@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     }).module("sparea");
 
     const cabi_mod = b.createModule(.{
-        .root_source_file = b.path("src/c_api.zig"),
+        .root_source_file = b.path("c_api.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "sparea"
@@ -9,12 +9,26 @@ description = "Spherical polygon area on the unit sphere"
 requires-python = ">=3.11"
 dependencies = ["numpy>=1.24"]
 
-[tool.setuptools]
-packages = ["sparea"]
-include-package-data = true
-
-[tool.setuptools.package-data]
-sparea = ["libsparea.*"]
-
 [dependency-groups]
 dev = ["pytest>=8"]
+
+# The `custom` build hook (hatch_build.py) runs `zig build` and stages
+# libsparea.* into src/sparea/ at wheel-build time. It's .gitignore'd,
+# so it's also listed under `artifacts` to force-include in wheel + sdist.
+[tool.hatch.build]
+artifacts = ["src/sparea/libsparea.*"]
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sparea"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "tests",
+    "justfile",
+    "hatch_build.py",
+    "README.md",
+]

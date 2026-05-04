@@ -55,54 +55,55 @@ The upstream sparea Zig source is fetched automatically by `zig build`
 from the URL pinned in `build.zig.zon` — no separate checkout needed.
 
 ```sh
-# Step 1: build the shared library and copy it into sparea/.
-# Required for editable installs because setuptools' editable mode
-# doesn't propagate generated artifacts from the build dir back to
-# the source tree.
-./scripts/build-lib.sh
-
-# Step 2: install Python deps.
-uv sync
-
-# Step 3: run tests.
-uv run pytest -q
+just reinstall  # uv cache clean sparea + uv sync --reinstall-package sparea
+just test       # reinstall + uv run pytest
+just wheel      # uv build
 ```
 
-For wheel builds (`uv build` or `cibuildwheel`) the prebuild step
-isn't needed — `setup.py`'s `BuildZig` command runs `zig build` and
-bundles `libsparea.*` into the wheel automatically.
+The `zig build` step is wired into the hatchling build backend via
+`hatch_build.py` (`[tool.hatch.build.hooks.custom]`), so every install
+path — `uv sync`, `uv build`, `pip wheel .`, cibuildwheel — triggers
+it automatically. Local dev uses non-editable installs
+(`UV_NO_EDITABLE=1` is set at the top of the justfile) so the dylib
+lands in site-packages alongside `sparea/__init__.py`, where the
+ctypes loader expects it. `just test` chains through `just reinstall`
+which clears uv's wheel cache and force-reinstalls sparea, so a stale
+zig artifact never silently survives a test run.
+
+For cibuildwheel, install Zig once per build image via
+`CIBW_BEFORE_ALL` (e.g. `pip install ziglang` or download from
+ziglang.org); the hook handles the rest.
 
 ## Layout
 
 ```
 .
-├── pyproject.toml          — setuptools config, package metadata
-├── setup.py                — custom build_py that runs `zig build` and
-│                             bundles libsparea.* into the wheel
-├── build.zig               — produces libsparea.{dylib,so,dll} from
-│                             src/c_api.zig + the upstream sparea module
-├── build.zig.zon           — pins the sparea_zig dependency
+├── pyproject.toml          — hatchling config, package metadata
+├── hatch_build.py          — hatchling hook: runs `zig build`,
+│                             stages libsparea.* into src/sparea/
+├── justfile                — build / sync / test / wheel / bump / clean
 ├── src/
-│   └── c_api.zig           — pub export fn sparea_polygon_area_xyz
-├── scripts/
-│   └── build-lib.sh        — prebuild script for editable installs
-├── sparea/
-│   └── __init__.py         — ctypes wrapper, exposes polygon_area +
-│                             SpareaError, AntipodalEdgeError,
-│                             TooFewVerticesError
+│   ├── sparea/
+│   │   └── __init__.py     — ctypes wrapper, exposes polygon_area +
+│   │                         SpareaError, AntipodalEdgeError,
+│   │                         TooFewVerticesError
+│   └── zig/
+│       ├── build.zig       — produces libsparea.{dylib,so,dll}
+│       ├── build.zig.zon   — pins the sparea_zig dependency
+│       └── c_api.zig       — pub export fn sparea_polygon_area_xyz
 └── tests/
     └── test_bindings.py
 ```
 
-After a successful build, `sparea/libsparea.{dylib,so,dll}` will exist —
-that's the bundled artifact that ships in wheels. It's `.gitignore`d.
+After a successful build, `src/sparea/libsparea.{dylib,so,dll}` will
+exist — that's the bundled artifact that ships in wheels. It's
+`.gitignore`d.
 
 ## Bumping the sparea_zig version
 
 ```sh
-zig fetch --save=sparea \
-  https://github.com/ajfriend/sparea_zig/archive/refs/tags/vX.Y.Z.tar.gz
+just bump vX.Y.Z
 ```
 
-That rewrites the `dependencies.sparea` entry in `build.zig.zon` with
-the new URL and content hash.
+That rewrites the `dependencies.sparea` entry in
+`src/zig/build.zig.zon` with the new URL and content hash.
