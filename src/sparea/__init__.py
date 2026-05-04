@@ -72,15 +72,17 @@ _lib.sparea_polygon_area_xyz.argtypes = [
 _lib.sparea_polygon_area_xyz.restype = ctypes.c_int
 
 
-def polygon_area(latlngs) -> float:
+def polygon_area(verts) -> float:
     """Area in steradians of a spherical polygon on the unit sphere.
 
     Args:
-        latlngs: sequence of (lat, lng) pairs in radians, or a 2-D
-            array-like of shape (N, 2). Vertices traverse the polygon
-            boundary; CCW as viewed from outside the sphere yields the
-            interior area, CW yields the complement (4π − interior).
-            At least 3 vertices required.
+        verts: 2-D array-like of vertices, shape (N, 2) or (N, 3).
+            - shape (N, 2): each row is a `(lat, lng)` pair in radians.
+            - shape (N, 3): each row is a unit 3-vector `(x, y, z)` on
+              the sphere; caller is responsible for normalization.
+            Vertices traverse the polygon boundary; CCW as viewed from
+            outside the sphere yields the interior area, CW yields the
+            complement (4π − interior). At least 3 vertices required.
 
     Returns:
         Area in steradians, in `[0, 4π)`.
@@ -90,18 +92,26 @@ def polygon_area(latlngs) -> float:
             (near-)antipodal — the geodesic between them is ambiguous
             and the polygon is geometrically ill-defined.
         TooFewVerticesError: the polygon has fewer than 3 vertices.
-        ValueError: input shape is not (N, 2).
+        ValueError: input shape is not (N, 2) or (N, 3).
     """
-    arr = np.ascontiguousarray(latlngs, dtype=np.float64)
-    if arr.ndim != 2 or arr.shape[1] != 2:
-        raise ValueError("latlngs must be a 2-D array of shape (N, 2)")
+    arr = np.ascontiguousarray(verts, dtype=np.float64)
+    if arr.ndim != 2 or arr.shape[1] not in (2, 3):
+        raise ValueError(
+            "verts must be a 2-D array of shape (N, 2) for lat/lng "
+            "or (N, 3) for unit xyz vectors"
+        )
 
-    lat = arr[:, 0]
-    lng = arr[:, 1]
-    cl = np.cos(lat)
-    xs = np.ascontiguousarray(cl * np.cos(lng))
-    ys = np.ascontiguousarray(cl * np.sin(lng))
-    zs = np.ascontiguousarray(np.sin(lat))
+    if arr.shape[1] == 2:
+        lat = arr[:, 0]
+        lng = arr[:, 1]
+        cl = np.cos(lat)
+        xs = np.ascontiguousarray(cl * np.cos(lng))
+        ys = np.ascontiguousarray(cl * np.sin(lng))
+        zs = np.ascontiguousarray(np.sin(lat))
+    else:
+        xs = np.ascontiguousarray(arr[:, 0])
+        ys = np.ascontiguousarray(arr[:, 1])
+        zs = np.ascontiguousarray(arr[:, 2])
 
     out = ctypes.c_double()
     err = _lib.sparea_polygon_area_xyz(

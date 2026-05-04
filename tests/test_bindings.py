@@ -58,8 +58,50 @@ def test_too_few_vertices_error_is_value_error():
 
 
 def test_wrong_shape_raises():
+    # (N, 2) and (N, 3) are valid; anything else is not.
     with pytest.raises(ValueError):
-        polygon_area(np.zeros((3, 3)))
+        polygon_area(np.zeros((3, 4)))
+    with pytest.raises(ValueError):
+        polygon_area(np.zeros((3, 1)))
+
+
+# Octant triangle expressed as unit xyz vectors instead of lat/lng.
+OCTANT_XYZ = np.array([
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0],
+])
+
+
+def test_octant_triangle_xyz():
+    assert math.isclose(polygon_area(OCTANT_XYZ), math.pi / 2, abs_tol=1e-14)
+
+
+def test_xyz_matches_latlng():
+    # Same polygon, two input forms — should agree to f64 noise.
+    a_latlng = polygon_area(OCTANT)
+    a_xyz = polygon_area(OCTANT_XYZ)
+    assert math.isclose(a_latlng, a_xyz, abs_tol=1e-14)
+
+
+def test_xyz_accepts_python_list():
+    verts = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
+    assert math.isclose(polygon_area(verts), math.pi / 2, abs_tol=1e-14)
+
+
+def test_xyz_too_few_vertices_raises():
+    with pytest.raises(TooFewVerticesError):
+        polygon_area(np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]))
+
+
+def test_xyz_antipodal_edge_raises():
+    verts = np.array([
+        [1.0,  0.0, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0,  0.0, 1.0],
+    ])
+    with pytest.raises(AntipodalEdgeError):
+        polygon_area(verts)
 
 
 def test_antipodal_edge_raises():

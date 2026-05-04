@@ -8,12 +8,18 @@ import math
 from sparea import polygon_area
 
 # Octant triangle: equator at lng=0, equator at lng=π/2, north pole.
-verts = [
+# Vertices may be either (lat, lng) in radians or unit (x, y, z).
+polygon_area([
     (0.0,         0.0),
     (0.0,         math.pi / 2),
     (math.pi / 2, 0.0),
-]
-polygon_area(verts)   # ≈ pi / 2
+])  # ≈ pi / 2
+
+polygon_area([
+    (1.0, 0.0, 0.0),
+    (0.0, 1.0, 0.0),
+    (0.0, 0.0, 1.0),
+])  # ≈ pi / 2
 ```
 
 The result is in steradians, in `[0, 4π)`. Reverse the vertex order
