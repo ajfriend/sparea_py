@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: py${{ matrix.python-version }} on ${{ matrix.os }}
@@ -30,15 +34,8 @@ jobs:
 
       - uses: extractions/setup-just@v4
 
-      # `uv sync` triggers the hatchling build hook (src/hatch_build.py),
-      # which shells out to `zig build` and stages libsparea.* under
-      # src/sparea/. The non-editable wheel install puts it next to
-      # __init__.py where the ctypes loader expects it.
       - name: Install
         run: uv sync
 
-      # ci-test runs `uv run pytest -q`. pytest config (in pyproject.toml)
-      # turns on --cov-branch + --cov-fail-under=100, so a coverage
-      # regression fails this step.
       - name: Test + coverage
         run: just ci-test
