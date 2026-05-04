@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
@@ -29,8 +30,11 @@ class ZigBuildHook(BuildHookInterface):
         build_data["pure_python"] = False
         build_data["infer_tag"] = True
 
+        # The `ziglang` build dep doesn't expose a `zig` console script —
+        # only `python -m ziglang`. Going through sys.executable picks up
+        # the build-env's pinned ziglang regardless of what's on PATH.
         subprocess.check_call(
-            ["zig", "build", "-Doptimize=ReleaseFast"],
+            [sys.executable, "-m", "ziglang", "build", "-Doptimize=ReleaseFast"],
             cwd=zig_dir,
         )
 

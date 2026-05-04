@@ -39,7 +39,10 @@ sparea = ["src/sparea", "*/site-packages/sparea"]
 [tool.hatch.build]
 artifacts = ["src/sparea/libsparea.*"]
 
-[tool.hatch.build.hooks.custom]
+# Scope the zig-build hook to the wheel target only. Sdists are
+# source-only — running zig there is wasteful and would force the
+# sdist build env to have ziglang available.
+[tool.hatch.build.targets.wheel.hooks.custom]
 path = "src/hatch_build.py"
 
 [tool.hatch.build.targets.wheel]
