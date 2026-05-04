@@ -57,7 +57,6 @@ include = [
 ]
 
 [tool.cibuildwheel]
-build-frontend = "build[uv]"
 # We require Python 3.11+ via project.requires-python; cibuildwheel
 # auto-skips older CPythons, so just exclude PyPy here.
 skip = "pp*"

@@ -10,7 +10,9 @@ on:
 
 concurrency:
   group: wheels-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Don't cancel a release run mid-publish, but for branch pushes and
+  # PRs the latest commit should win — old runs just block the queue.
+  cancel-in-progress: ${{ github.event_name != 'release' }}
 
 jobs:
   sdist:
