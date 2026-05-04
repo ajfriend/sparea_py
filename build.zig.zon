@@ -1,0 +1,17 @@
+.{
+    .name = .sparea_py,
+    .version = "0.1.0",
+    .fingerprint = 0x5b12200d45c900c3,
+    .minimum_zig_version = "0.15.2",
+    .dependencies = .{
+        .sparea = .{
+            .url = "https://github.com/ajfriend/sparea_zig/archive/refs/tags/v0.2.0.tar.gz",
+            .hash = "sparea-0.2.0-OYn1hfO9AACjweIta1dG59GA-GkeULSshqPl5tM8NqTL",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

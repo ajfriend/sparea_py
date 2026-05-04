@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Bundled shared library (rebuilt by setup.py)
+sparea/libsparea.*
+
+# Zig build artifacts
+zig-out/
+.zig-cache/
+
+# uv lockfile — opt in if you want it tracked
+uv.lock
+
+# OS
+.DS_Store
