@@ -50,15 +50,7 @@ _ERROR_MESSAGES: dict[int, str] = {
 def _load_lib() -> ctypes.CDLL:
     here = Path(__file__).parent
     suffix = {"darwin": ".dylib", "win32": ".dll"}.get(sys.platform, ".so")
-    lib_path = here / f"libsparea{suffix}"
-    if not lib_path.exists():
-        candidates = list(here.glob("libsparea.*"))
-        if not candidates:
-            raise RuntimeError(
-                f"libsparea shared library not found in {here}"
-            )
-        lib_path = candidates[0]
-    return ctypes.CDLL(str(lib_path))
+    return ctypes.CDLL(str(here / f"libsparea{suffix}"))
 
 
 _lib = _load_lib()
