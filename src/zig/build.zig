@@ -18,6 +18,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("c_api.zig"),
         .target = target,
         .optimize = optimize,
+        // c_api.zig uses std.heap.c_allocator, which requires libc to
+        // be explicitly linked on Linux/Windows (macOS gets it for free).
+        .link_libc = true,
         .imports = &.{
             .{ .name = "sparea", .module = sparea_mod },
         },
