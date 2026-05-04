@@ -27,10 +27,36 @@ polygon_area(verts)   # ≈ pi / 2
 The result is in steradians, in `[0, 4π)`. Reverse the vertex order
 to get the complementary region (`4π − interior`).
 
+## Installing
+
+Wheels aren't on PyPI yet, but you can install straight from the git
+repo with either pip or uv. You'll need a Zig 0.15.2+ compiler on
+PATH (`brew install zig` on macOS, see
+[ziglang.org](https://ziglang.org/learn/getting-started/) otherwise).
+The build pulls the `sparea_zig` source over the network from the URL
+pinned in `src/zig/build.zig.zon`.
+
+```sh
+# regular pip
+pip install git+https://github.com/ajfriend/sparea_py.git
+
+# uv (project add)
+uv add git+https://github.com/ajfriend/sparea_py.git
+
+# uv (one-off in a venv)
+uv pip install git+https://github.com/ajfriend/sparea_py.git
+```
+
+Both code paths run the same hatchling build hook
+(`src/hatch_build.py`), which shells out to `zig build` to compile
+`libsparea.{dylib,so,dll}` and bundles it into the wheel before pip
+installs it.
+
 ## Architecture
 
-The C ABI shim (`src/c_api.zig`) and `build.zig` both live here, not
-in the upstream `sparea_zig` package. The split is intentional:
+The C ABI shim (`src/zig/c_api.zig`) and `src/zig/build.zig` both
+live here, not in the upstream `sparea_zig` package. The split is
+intentional:
 
 - **`sparea_zig` (upstream)**: pure Zig algorithm library. Exports a
   `Module` for other Zig code; no C ABI, no shared library.
@@ -45,14 +71,8 @@ NumPy layout), reconstructs a `[]Vec3` on the Zig side, and calls
 
 ## Building locally
 
-You need:
-
-- Zig 0.15.2+ on PATH (`brew install zig` on macOS, see
-  https://ziglang.org/learn/getting-started/ otherwise).
-- `uv` for Python deps and venv management.
-
-The upstream sparea Zig source is fetched automatically by `zig build`
-from the URL pinned in `build.zig.zon` — no separate checkout needed.
+For development on this repo (rather than installing from git), use
+the justfile:
 
 ```sh
 just reinstall  # uv cache clean sparea + uv sync --reinstall-package sparea
@@ -79,10 +99,10 @@ ziglang.org); the hook handles the rest.
 ```
 .
 ├── pyproject.toml          — hatchling config, package metadata
-├── hatch_build.py          — hatchling hook: runs `zig build`,
-│                             stages libsparea.* into src/sparea/
 ├── justfile                — build / sync / test / wheel / bump / clean
 ├── src/
+│   ├── hatch_build.py      — hatchling hook: runs `zig build`,
+│   │                         stages libsparea.* into src/sparea/
 │   ├── sparea/
 │   │   └── __init__.py     — ctypes wrapper, exposes polygon_area +
 │   │                         SpareaError, AntipodalEdgeError,
