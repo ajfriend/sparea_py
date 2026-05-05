@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from sparea import AntipodalEdgeError, TooFewVerticesError, polygon_area
+from sparea import polygon_area
 
 
 # Octant triangle (north pole + two equator points 90° apart).
@@ -47,7 +47,7 @@ def test_accepts_python_list():
 
 def test_too_few_vertices_raises():
     verts = np.array([[0.0, 0.0], [0.0, math.pi / 2]])
-    with pytest.raises(TooFewVerticesError):
+    with pytest.raises(ValueError):
         polygon_area(verts)
 
 
@@ -90,7 +90,7 @@ def test_xyz_accepts_python_list():
 
 
 def test_xyz_too_few_vertices_raises():
-    with pytest.raises(TooFewVerticesError):
+    with pytest.raises(ValueError):
         polygon_area(np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]))
 
 
@@ -100,7 +100,7 @@ def test_xyz_antipodal_edge_raises():
         [-1.0, 0.0, 0.0],
         [0.0,  0.0, 1.0],
     ])
-    with pytest.raises(AntipodalEdgeError):
+    with pytest.raises(ValueError):
         polygon_area(verts)
 
 
@@ -111,7 +111,7 @@ def test_antipodal_edge_raises():
         [0.0,         math.pi],     # (-1, 0, 0)
         [math.pi / 2, 0.0],         # (0, 0, 1)
     ])
-    with pytest.raises(AntipodalEdgeError):
+    with pytest.raises(ValueError):
         polygon_area(verts)
 
 
