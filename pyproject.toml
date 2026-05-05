@@ -52,7 +52,7 @@ include = [
 [tool.cibuildwheel]
 skip = "pp*"
 test-requires = ["pytest", "numpy"]
-# `--no-cov` because the coverage gate runs once in test.yml; running
-# it inside every cibuildwheel test env would just repeat the work
-# (and `pytest-cov` isn't even in test-requires here).
-test-command = "pytest {project}/tests --no-cov"
+# Override pyproject.toml's addopts (which assume pytest-cov) — the
+# coverage gate runs once in test.yml; repeating it 35× across every
+# cibuildwheel test env would just be wasted work.
+test-command = "pytest {project}/tests -o addopts="
