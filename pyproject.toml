@@ -73,7 +73,6 @@ packages = ["src/sparea"]
 include = ["src", "tests", "readme.md"]
 
 [tool.cibuildwheel]
-skip = "pp*"
 test-requires = ["pytest", "numpy"]
 # Override pyproject.toml's addopts (which assume pytest-cov) — the
 # coverage gate runs once in test.yml; repeating it 35× across every
