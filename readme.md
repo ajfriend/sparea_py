@@ -33,26 +33,30 @@ to get the complementary region (`4π − interior`).
 
 ## Installing
 
-Wheels aren't on PyPI yet, but you can install straight from the git
-repo with either pip or uv:
+```sh
+pip install sparea
+# or
+uv add sparea
+```
+
+Wheels are published for Python 3.11–3.14 across Linux (x86_64,
+aarch64, manylinux + musllinux), macOS arm64, and Windows AMD64. No
+host-level Zig install needed.
+
+To install the unreleased main branch instead, point pip/uv at the
+git URL:
 
 ```sh
-# regular pip
 pip install git+https://github.com/ajfriend/sparea_py.git
-
-# uv (project add)
-uv add git+https://github.com/ajfriend/sparea_py.git
-
-# uv (one-off in a venv)
 uv pip install git+https://github.com/ajfriend/sparea_py.git
 ```
 
-The Zig toolchain is pulled in automatically via the `ziglang` PyPI
-wheel listed in `[build-system].requires` — no host-level Zig install
-needed. The hatchling build hook (`src/hatch_build.py`) compiles
-`libsparea.{dylib,so,dll}` and bundles it into the wheel before pip
-installs it. The upstream `sparea_zig` source is fetched over the
-network from the URL pinned in `src/zig/build.zig.zon`.
+That path triggers a source build: the hatchling hook
+(`src/hatch_build.py`) pulls the Zig toolchain from the `ziglang`
+PyPI wheel, compiles `libsparea.{dylib,so,dll}`, and bundles it into
+the wheel before pip installs it. The upstream `sparea_zig` source
+is fetched over the network from the URL pinned in
+`src/zig/build.zig.zon`.
 
 See [`dev.md`](dev.md) for architecture, layout, and contributor
 notes.
