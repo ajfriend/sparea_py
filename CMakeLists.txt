@@ -81,10 +81,13 @@ add_dependencies(_nb libsparea)
 # itself is in zig-out/bin/ and we copy it into CMAKE_BINARY_DIR/sparea.
 if(WIN32)
     target_link_directories(_nb PRIVATE "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib")
+    # __std_exception_copy lives in modern vcruntime; Zig's import lib
+    # for libsparea drags in CRT references the linker doesn't auto-pull.
+    target_link_libraries(_nb PRIVATE sparea vcruntime)
 else()
     target_link_directories(_nb PRIVATE "${CMAKE_BINARY_DIR}/sparea")
+    target_link_libraries(_nb PRIVATE sparea)
 endif()
-target_link_libraries(_nb PRIVATE sparea)
 
 if(APPLE)
     set_target_properties(_nb PROPERTIES
