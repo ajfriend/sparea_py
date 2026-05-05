@@ -1,7 +1,8 @@
 [build-system]
-# ziglang gives the build env a Zig toolchain — no host install needed.
-requires = ["hatchling", "ziglang>=0.15.2"]
-build-backend = "hatchling.build"
+# scikit-build-core drives CMake, which builds both the nanobind
+# extension and (via a custom command) the Zig dylib.
+requires = ["scikit-build-core>=0.10", "ziglang>=0.15.2", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "sparea"
@@ -53,28 +54,17 @@ addopts = [
 [tool.coverage.run]
 branch = true
 
-# Non-editable installs put sparea/ under site-packages; alias it back
-# to src/sparea/ so the coverage report shows the source path.
 [tool.coverage.paths]
 sparea = ["src/sparea", "*/site-packages/sparea"]
 
-# libsparea.* is .gitignore'd; force-include it in wheel/sdist.
-[tool.hatch.build]
-artifacts = ["src/sparea/libsparea.*"]
-
-# Scope to wheel target — sdists are source-only.
-[tool.hatch.build.targets.wheel.hooks.custom]
-path = "src/hatch_build.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/sparea"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src", "tests", "readme.md"]
+[tool.scikit-build]
+# Project layout: pure-Python sources live under src/sparea/; CMake
+# stages compiled artifacts (the nanobind extension + libsparea)
+# alongside them via `install(... DESTINATION sparea)`.
+wheel.packages = ["src/sparea"]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.20"
 
 [tool.cibuildwheel]
 test-requires = ["pytest", "numpy"]
-# Override pyproject.toml's addopts (which assume pytest-cov) — the
-# coverage gate runs once in test.yml; repeating it 35× across every
-# cibuildwheel test env would just be wasted work.
 test-command = "pytest {project}/tests -o addopts="

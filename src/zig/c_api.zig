@@ -34,3 +34,27 @@ pub export fn sparea_polygon_area_xyz(
     };
     return SPAREA_OK;
 }
+
+/// C ABI: same as sparea_polygon_area_xyz, but takes an interleaved
+/// `(N, 3)` row-major buffer `[x0, y0, z0, x1, y1, z1, ...]`. This
+/// is the layout numpy gives you directly for a `(N, 3)` array with
+/// no per-column copy — it's what the nanobind binding uses.
+pub export fn sparea_polygon_area_vec3(
+    verts_buf: [*]const f64,
+    n: usize,
+    out: *f64,
+) c_int {
+    const allocator = std.heap.c_allocator;
+    const verts = allocator.alloc(Vec3, n) catch return SPAREA_OOM;
+    defer allocator.free(verts);
+    for (0..n) |i| {
+        const base = i * 3;
+        verts[i] = Vec3.init(verts_buf[base], verts_buf[base + 1], verts_buf[base + 2]);
+    }
+
+    out.* = sparea.polygon_area(f64, verts) catch |err| switch (err) {
+        error.AntipodalEdge => return SPAREA_ANTIPODAL_EDGE,
+        error.TooFewVertices => return SPAREA_TOO_FEW_VERTICES,
+    };
+    return SPAREA_OK;
+}
