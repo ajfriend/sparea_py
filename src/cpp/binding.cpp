@@ -1,8 +1,9 @@
 // Prototype nanobind binding for sparea.
 //
-// Compiled by src/hatch_build.py and bundled alongside libsparea into
-// the wheel. The Python side imports this as `sparea._nb` and exposes
-// `polygon_area` that accepts `(N, 3)` numpy arrays with zero copy.
+// Compiled by CMake (driven by scikit-build-core) and statically
+// linked against libsparea. The Python side imports this as
+// `sparea._nb` and exposes `polygon_area` that accepts `(N, 3)` numpy
+// arrays with zero copy.
 
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -10,13 +11,16 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-// Workaround for the macOS 26 / Xcode 26 linker, which fails to assign
-// an address to `__dso_handle` referenced by nanobind's static library
-// from C++ global ctors and outlined functions. Defining the symbol
-// ourselves (visibility hidden so it doesn't leak into the dyld symbol
-// table) gives the linker a real fixup target.
-#if defined(__APPLE__)
-extern "C" __attribute__((visibility("hidden"))) void *__dso_handle = nullptr;
+// LLVM's optimizer fuses adjacent sin/cos calls on the same argument
+// into a sincos() call. That's a glibc extension — MSVC's libm has
+// no `sincos`, so when Zig's optimized static archive ends up
+// referencing it on Windows the linker can't resolve it. One-line shim.
+#if defined(_WIN32)
+#include <math.h>
+extern "C" void sincos(double x, double *s, double *c) {
+    *s = sin(x);
+    *c = cos(x);
+}
 #endif
 
 // C ABI exported by libsparea (see src/zig/c_api.zig).
