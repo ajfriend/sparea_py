@@ -60,18 +60,17 @@ just wheel      # uv build
 ```
 
 The `zig build` step is wired into the hatchling build backend via
-`src/hatch_build.py` (`[tool.hatch.build.hooks.custom]`), so every
-install path — `uv sync`, `uv build`, `pip wheel .`, cibuildwheel —
-triggers it automatically. Local dev uses non-editable installs
-(`UV_NO_EDITABLE=1` is set at the top of the justfile) so the dylib
-lands in site-packages alongside `sparea/__init__.py`, where the
-ctypes loader expects it. `just test` chains through `just reinstall`,
-which clears uv's wheel cache and force-reinstalls sparea — so a
-stale zig artifact never silently survives a test run.
-
-For cibuildwheel, install Zig once per build image via
-`CIBW_BEFORE_ALL` (e.g. `pip install ziglang` or download from
-ziglang.org); the hook handles the rest.
+`src/hatch_build.py` (`[tool.hatch.build.targets.wheel.hooks.custom]`),
+so every install path — `uv sync`, `uv build`, `pip wheel .`,
+cibuildwheel — triggers it automatically. The Zig toolchain itself
+is a build-system dep (`ziglang>=0.15.2` in
+`[build-system].requires`), so no host-level Zig install is needed
+anywhere. Local dev uses non-editable installs (`UV_NO_EDITABLE=1`
+at the top of the justfile) so the dylib lands in site-packages
+alongside `sparea/__init__.py`, where the ctypes loader expects it.
+`just test` chains through `just reinstall`, which clears uv's wheel
+cache and force-reinstalls sparea — so a stale zig artifact never
+silently survives a test run.
 
 ## Bumping the sparea_zig version
 
@@ -85,3 +84,40 @@ cd src/zig && zig fetch --save=sparea \
 
 That rewrites the `dependencies.sparea` entry with the new URL and
 hash. Re-run `just test` to confirm the new version still works.
+
+## Cutting a release
+
+Trusted-Publisher OIDC is wired up — no API tokens involved. To
+publish a new version to PyPI from the GitHub web UI:
+
+1. **Bump the version** in `pyproject.toml` (`project.version`).
+   Commit + push to `main`. Wait for `test` and `wheels` to go green.
+
+2. **Create a tag and a release in one go.**
+   - Go to https://github.com/ajfriend/sparea_py/releases →
+     **Draft a new release**.
+   - **Choose a tag**: type `vX.Y.Z` (matching the `pyproject.toml`
+     version) and pick **"Create new tag: vX.Y.Z on publish"**.
+   - **Target**: leave on `main`.
+   - **Release title**: `vX.Y.Z` (or anything descriptive).
+   - Click **Generate release notes** — fills in commit history.
+   - Leave **Set as a pre-release** unchecked for normal releases.
+   - **Publish release**.
+
+3. **Watch the publish.** The release-publish event triggers the
+   `wheels` workflow on https://github.com/ajfriend/sparea_py/actions.
+   It rebuilds + tests every wheel (sdist + 35 wheels), then the
+   `to-pypi` job downloads them all and pushes to PyPI via OIDC.
+   - If the `pypi` environment has required reviewers configured,
+     the `to-pypi` job pauses with **"Waiting on review"** — open
+     the workflow run and click **Review deployments** → **Approve
+     and deploy**.
+
+4. **Verify.** Once `to-pypi` is green, the version shows up on
+   https://pypi.org/project/sparea/ within a minute. Test with
+   `pip install sparea==X.Y.Z` in a fresh venv.
+
+If something goes wrong mid-publish (e.g. PyPI rejects the upload
+because that version already exists), you cannot reuse the version
+number — bump to `X.Y.Z+1` and try again. Tags are also immutable on
+PyPI; a deleted release can't be re-uploaded under the same version.
