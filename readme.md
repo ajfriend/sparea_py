@@ -1,5 +1,11 @@
 # sparea: Spherical Polygon Area
 
+[![PyPI](https://img.shields.io/pypi/v/sparea.svg)](https://pypi.org/project/sparea/)
+[![Python](https://img.shields.io/pypi/pyversions/sparea.svg)](https://pypi.org/project/sparea/)
+[![License](https://img.shields.io/pypi/l/sparea.svg)](https://github.com/ajfriend/sparea_py/blob/main/license)
+[![Tests](https://github.com/ajfriend/sparea_py/actions/workflows/test.yml/badge.svg)](https://github.com/ajfriend/sparea_py/actions/workflows/test.yml)
+[![Wheels](https://github.com/ajfriend/sparea_py/actions/workflows/wheels.yml/badge.svg)](https://github.com/ajfriend/sparea_py/actions/workflows/wheels.yml)
+
 Python bindings for [sparea_zig](https://github.com/ajfriend/sparea_zig), a
 Zig library for computing the area of spherical polygons.
 
