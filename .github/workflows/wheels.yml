@@ -24,6 +24,7 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
         with:
           python-version: "3.13"
+          cache-suffix: wheels-sdist
 
       - name: Build sdist
         run: uv build --sdist

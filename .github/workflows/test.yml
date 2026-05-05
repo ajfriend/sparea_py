@@ -26,6 +26,7 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache-suffix: test
 
       - uses: extractions/setup-just@v4
 
