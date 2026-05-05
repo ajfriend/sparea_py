@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Force the dynamic MSVC runtime (/MD), which is what Python extensions
+# expect. Without this, nanobind's static lib + Zig's import lib end
+# up referencing CRT symbols the linker can't resolve.
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+
 # Match Python's MACOSX_DEPLOYMENT_TARGET so the extension links cleanly
 # against nanobind's static lib. cibuildwheel sets the env var; locally
 # we default to 11.0 (Python's own minimum). Must be set before project().
@@ -81,13 +87,10 @@ add_dependencies(_nb libsparea)
 # itself is in zig-out/bin/ and we copy it into CMAKE_BINARY_DIR/sparea.
 if(WIN32)
     target_link_directories(_nb PRIVATE "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib")
-    # __std_exception_copy lives in modern vcruntime; Zig's import lib
-    # for libsparea drags in CRT references the linker doesn't auto-pull.
-    target_link_libraries(_nb PRIVATE sparea vcruntime)
 else()
     target_link_directories(_nb PRIVATE "${CMAKE_BINARY_DIR}/sparea")
-    target_link_libraries(_nb PRIVATE sparea)
 endif()
+target_link_libraries(_nb PRIVATE sparea)
 
 if(APPLE)
     set_target_properties(_nb PROPERTIES
