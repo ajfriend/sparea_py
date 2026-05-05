@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Force the dynamic MSVC runtime (/MD), which is what Python extensions
-# expect.
+# expect. Must be set before project().
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
 # Match Python's MACOSX_DEPLOYMENT_TARGET so the extension links cleanly.
-# Must be set before project().
 if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
     if(DEFINED ENV{MACOSX_DEPLOYMENT_TARGET})
         set(CMAKE_OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
@@ -17,7 +16,10 @@ endif()
 
 project(sparea LANGUAGES CXX)
 
-# ----- 1. Build libsparea via the upstream Zig project ---------------
+# ----- 1. Build libsparea as a static archive via Zig ----------------
+# The .a / .lib gets pulled into the C++ extension at link time, so
+# there's no runtime DLL/dylib to ship and no CRT-mode mismatch on
+# Windows.
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
@@ -32,55 +34,33 @@ if(APPLE)
 endif()
 
 if(WIN32)
-    set(ZIG_OUT_LIB "${CMAKE_SOURCE_DIR}/src/zig/zig-out/bin/sparea.dll")
-    set(STAGED_LIB_NAME "libsparea.dll")
-elseif(APPLE)
-    set(ZIG_OUT_LIB "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib/libsparea.dylib")
-    set(STAGED_LIB_NAME "libsparea.dylib")
+    set(ZIG_OUT_LIB "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib/sparea.lib")
 else()
-    set(ZIG_OUT_LIB "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib/libsparea.so")
-    set(STAGED_LIB_NAME "libsparea.so")
+    set(ZIG_OUT_LIB "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib/libsparea.a")
 endif()
 
-set(STAGED_LIB "${CMAKE_BINARY_DIR}/sparea/${STAGED_LIB_NAME}")
-
 add_custom_command(
-    OUTPUT "${STAGED_LIB}"
+    OUTPUT "${ZIG_OUT_LIB}"
     COMMAND ${ZIG_CMD}
-    COMMAND ${CMAKE_COMMAND} -E copy "${ZIG_OUT_LIB}" "${STAGED_LIB}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/zig"
-    COMMENT "Building libsparea via Zig"
+    COMMENT "Building libsparea static archive via Zig"
     VERBATIM
 )
-add_custom_target(libsparea ALL DEPENDS "${STAGED_LIB}")
+add_custom_target(libsparea_build DEPENDS "${ZIG_OUT_LIB}")
+
+# Wrap the prebuilt static archive as an IMPORTED target so the C++
+# extension can link against it via target_link_libraries.
+add_library(libsparea STATIC IMPORTED)
+set_target_properties(libsparea PROPERTIES IMPORTED_LOCATION "${ZIG_OUT_LIB}")
+add_dependencies(libsparea libsparea_build)
 
 # ----- 2. Build the pybind11 extension -------------------------------
 
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(_pb src/cpp/binding.cpp)
-add_dependencies(_pb libsparea)
+target_link_libraries(_pb PRIVATE libsparea)
 
-if(WIN32)
-    target_link_directories(_pb PRIVATE "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib")
-else()
-    target_link_directories(_pb PRIVATE "${CMAKE_BINARY_DIR}/sparea")
-endif()
-target_link_libraries(_pb PRIVATE sparea)
-
-if(APPLE)
-    set_target_properties(_pb PROPERTIES
-        BUILD_RPATH "@loader_path"
-        INSTALL_RPATH "@loader_path"
-    )
-elseif(UNIX)
-    set_target_properties(_pb PROPERTIES
-        BUILD_RPATH "$ORIGIN"
-        INSTALL_RPATH "$ORIGIN"
-    )
-endif()
-
-# ----- 3. Install both into the wheel package dir --------------------
+# ----- 3. Install into the wheel package dir -------------------------
 
 install(TARGETS _pb LIBRARY DESTINATION sparea)
-install(FILES "${STAGED_LIB}" DESTINATION sparea)

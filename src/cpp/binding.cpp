@@ -11,13 +11,6 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-// Workaround for the macOS 26 / Xcode 26 linker, which fails to assign
-// an address to __dso_handle. Same fix as on the nanobind-prototype
-// branch — turns out it's not binding-library specific.
-#if defined(__APPLE__)
-extern "C" __attribute__((visibility("hidden"))) void *__dso_handle = nullptr;
-#endif
-
 // C ABI exported by libsparea (see src/zig/c_api.zig).
 extern "C" {
     int sparea_polygon_area_vec3(const double* verts, std::size_t n, double* out);
