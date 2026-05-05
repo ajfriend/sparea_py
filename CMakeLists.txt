@@ -76,7 +76,14 @@ add_dependencies(_nb libsparea)
 # Tell the extension where to find libsparea at link time and at
 # runtime. @loader_path / $ORIGIN make the rpath relative to the
 # extension itself, so the wheel-install layout works.
-target_link_directories(_nb PRIVATE "${CMAKE_BINARY_DIR}/sparea")
+# On Windows the linker needs the import library `sparea.lib`, which
+# Zig writes to zig-out/lib/ (alongside its archive output) — the .dll
+# itself is in zig-out/bin/ and we copy it into CMAKE_BINARY_DIR/sparea.
+if(WIN32)
+    target_link_directories(_nb PRIVATE "${CMAKE_SOURCE_DIR}/src/zig/zig-out/lib")
+else()
+    target_link_directories(_nb PRIVATE "${CMAKE_BINARY_DIR}/sparea")
+endif()
 target_link_libraries(_nb PRIVATE sparea)
 
 if(APPLE)
