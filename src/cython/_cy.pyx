@@ -1,21 +1,25 @@
 # cython: language_level=3
 """Prototype Cython binding for sparea.
 
-Compiled by CMake (driven by scikit-build-core); links against the
-Zig static archive libsparea.{a,lib}. Exposed as `sparea._cy`.
+Compiled by meson (driven by meson-python); links against the Zig
+static archive libsparea.{a,lib}. Exposed as `sparea._cy`.
 """
 
-# Inject a Windows sincos shim — LLVM auto-fuses adjacent sin/cos
-# in Zig's optimized object code into a sincos() call, which MSVC's
-# libm doesn't ship. (Same shim used on the nanobind / pybind11
-# prototype branches.)
+# Windows sincos shim — LLVM auto-fuses adjacent sin/cos in Zig's
+# optimized object code into a sincos() call, which MSVC's libm
+# doesn't ship. We route the shim's sin/cos through volatile function
+# pointers so MSVC's link-time codegen can't re-fuse them into a
+# recursive sincos() call.
 cdef extern from *:
     """
     #ifdef _WIN32
     #include <math.h>
+    typedef double (*sparea_unary_d)(double);
+    static volatile sparea_unary_d sparea_sin_fn = sin;
+    static volatile sparea_unary_d sparea_cos_fn = cos;
     void sincos(double x, double *s, double *c) {
-        *s = sin(x);
-        *c = cos(x);
+        *s = sparea_sin_fn(x);
+        *c = sparea_cos_fn(x);
     }
     #endif
     """
