@@ -1,11 +1,12 @@
 [build-system]
-# ziglang gives the build env a Zig toolchain — no host install needed.
-requires = ["hatchling", "ziglang>=0.15.2"]
-build-backend = "hatchling.build"
+# meson-python drives meson, which compiles the Cython extension and
+# links it against the Zig static archive.
+requires = ["meson-python>=0.16", "ziglang>=0.15.2", "cython>=3.0"]
+build-backend = "mesonpy"
 
 [project]
 name = "sparea"
-version = "0.1.1"
+version = "0.2.0"
 description = "Compute the area of spherical polygons on the unit sphere."
 readme = "readme.md"
 requires-python = ">=3.11"
@@ -58,19 +59,6 @@ branch = true
 [tool.coverage.paths]
 sparea = ["src/sparea", "*/site-packages/sparea"]
 
-# libsparea.* is .gitignore'd; force-include it in wheel/sdist.
-[tool.hatch.build]
-artifacts = ["src/sparea/libsparea.*"]
-
-# Scope to wheel target — sdists are source-only.
-[tool.hatch.build.targets.wheel.hooks.custom]
-path = "src/hatch_build.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/sparea"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src", "tests", "readme.md"]
 
 [tool.cibuildwheel]
 test-requires = ["pytest", "numpy"]
