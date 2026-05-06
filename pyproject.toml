@@ -1,7 +1,8 @@
 [build-system]
-# ziglang gives the build env a Zig toolchain — no host install needed.
-requires = ["hatchling", "ziglang>=0.15.2"]
-build-backend = "hatchling.build"
+# scikit-build-core drives CMake, which builds the Zig static archive
+# and the Cython extension that links against it.
+requires = ["scikit-build-core>=0.10", "ziglang>=0.15.2", "cython>=3.0"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "sparea"
@@ -58,19 +59,10 @@ branch = true
 [tool.coverage.paths]
 sparea = ["src/sparea", "*/site-packages/sparea"]
 
-# libsparea.* is .gitignore'd; force-include it in wheel/sdist.
-[tool.hatch.build]
-artifacts = ["src/sparea/libsparea.*"]
-
-# Scope to wheel target — sdists are source-only.
-[tool.hatch.build.targets.wheel.hooks.custom]
-path = "src/hatch_build.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/sparea"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src", "tests", "readme.md"]
+[tool.scikit-build]
+wheel.packages = ["src/sparea"]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.20"
 
 [tool.cibuildwheel]
 test-requires = ["pytest", "numpy"]

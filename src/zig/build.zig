@@ -18,17 +18,23 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("c_api.zig"),
         .target = target,
         .optimize = optimize,
-        // c_api.zig uses std.heap.c_allocator, which requires libc to
-        // be explicitly linked on Linux/Windows (macOS gets it for free).
         .link_libc = true,
+        // The static archive ends up linked into a Python extension
+        // (.so / .pyd), which is itself a shared library — its
+        // constituent objects must be position-independent.
+        .pic = true,
         .imports = &.{
             .{ .name = "sparea", .module = sparea_mod },
         },
     });
 
+    // Static lib pulled into the Cython extension at link time.
+    // Avoids the Windows MSVC CRT mismatch and the macOS dylib
+    // __dso_handle regression — see the nanobind/pybind11 prototype
+    // branches' branch_report.md for the upstream Zig issue links.
     const lib = b.addLibrary(.{
         .name = "sparea",
-        .linkage = .dynamic,
+        .linkage = .static,
         .root_module = cabi_mod,
     });
     b.installArtifact(lib);
