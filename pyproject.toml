@@ -1,8 +1,8 @@
 [build-system]
-# scikit-build-core drives CMake, which builds the Zig static archive
-# and the Cython extension that links against it.
-requires = ["scikit-build-core>=0.10", "ziglang>=0.15.2", "cython>=3.0"]
-build-backend = "scikit_build_core.build"
+# meson-python drives meson, which compiles the Cython extension and
+# links it against the Zig static archive.
+requires = ["meson-python>=0.16", "ziglang>=0.15.2", "cython>=3.0"]
+build-backend = "mesonpy"
 
 [project]
 name = "sparea"
@@ -59,10 +59,6 @@ branch = true
 [tool.coverage.paths]
 sparea = ["src/sparea", "*/site-packages/sparea"]
 
-[tool.scikit-build]
-wheel.packages = ["src/sparea"]
-minimum-version = "build-system.requires"
-cmake.version = ">=3.20"
 
 [tool.cibuildwheel]
 test-requires = ["pytest", "numpy"]
