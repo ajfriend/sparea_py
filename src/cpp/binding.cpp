@@ -11,18 +11,6 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-// LLVM's optimizer fuses adjacent sin/cos calls on the same argument
-// into a sincos() call. That's a glibc extension — MSVC's libm has
-// no `sincos`, so when Zig's optimized static archive ends up
-// referencing it on Windows the linker can't resolve it. One-line shim.
-#if defined(_WIN32)
-#include <math.h>
-extern "C" void sincos(double x, double *s, double *c) {
-    *s = sin(x);
-    *c = cos(x);
-}
-#endif
-
 // C ABI exported by libsparea (see src/zig/c_api.zig).
 extern "C" {
     int sparea_polygon_area_vec3(const double* verts, std::size_t n, double* out);
