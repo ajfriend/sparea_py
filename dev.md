@@ -5,11 +5,11 @@ contributor workflows for `sparea_py`.
 
 ## Architecture
 
-A thin `ctypes` wrapper around a small C ABI shim that calls into the
+A thin Cython binding around a small C ABI shim that calls into the
 upstream `sparea_zig` package. The Python side accepts a polygon as a
 list of `(lat, lng)` pairs in radians, converts each vertex to a unit
-3-vector with NumPy, and hands the parallel `xs`/`ys`/`zs` buffers to
-the Zig kernel.
+3-vector with NumPy, and hands a contiguous `(N, 3)` buffer to the
+Cython extension via a typed memoryview (`double[:, ::1]`) — no copy.
 
 The C ABI shim (`src/zig/c_api.zig`) and `src/zig/build.zig` both
 live here, not in the upstream `sparea_zig` package. The split is
@@ -19,37 +19,39 @@ intentional:
   `Module` for other Zig code; no C ABI, no shared library.
 - **`sparea_py` (this repo)**: depends on `sparea_zig` via
   `build.zig.zon`, wraps it in a tiny C ABI
-  (`sparea_polygon_area_xyz`), builds a shared library, and
-  ctypes-binds it from Python.
+  (`sparea_polygon_area_vec3`), builds a static archive, and links
+  it directly into the Cython extension `_cy.<EXT>`.
 
-The shim takes parallel `xs`/`ys`/`zs` `f64` arrays (the natural
-NumPy layout), reconstructs a `[]Vec3` on the Zig side, and calls
-`sparea.polygon_area(f64, verts)`.
+libsparea is a **static** archive (not a shared library) so it gets
+pulled into `_cy.so` / `_cy.pyd` at link time. That sidesteps both
+the Windows MSVC CRT mismatch and the macOS dylib `__dso_handle`
+regression you hit when shipping a Zig dynamic library; see
+[sparea_zig#1](https://github.com/ajfriend/sparea_zig/issues/1) and
+the linked Zig issues there for details.
 
 ## Layout
 
 ```
 .
-├── pyproject.toml          — hatchling config, package metadata
+├── pyproject.toml          — meson-python config, package metadata
+├── meson.build             — drives Zig static-archive build + Cython compile
 ├── justfile                — reinstall / test / wheel / clean / purge
 ├── src/
-│   ├── hatch_build.py      — hatchling hook: runs `zig build`,
-│   │                         stages libsparea.* into src/sparea/
+│   ├── cython/
+│   │   └── _cy.pyx         — Cython binding, exposes polygon_area
 │   ├── sparea/
-│   │   └── __init__.py     — ctypes wrapper, exposes polygon_area +
-│   │                         SpareaError, AntipodalEdgeError,
-│   │                         TooFewVerticesError
+│   │   └── __init__.py     — Python wrapper: shape-check + lat/lng→xyz
+│   │                         numpy trig + delegate to _cy
 │   └── zig/
-│       ├── build.zig       — produces libsparea.{dylib,so,dll}
+│       ├── build.zig       — produces libsparea.{a,lib} (static archive)
 │       ├── build.zig.zon   — pins the sparea_zig dependency
-│       └── c_api.zig       — pub export fn sparea_polygon_area_xyz
+│       └── c_api.zig       — pub export fn sparea_polygon_area_vec3
 └── tests/
     └── test_bindings.py
 ```
 
-After a successful build, `src/sparea/libsparea.{dylib,so,dll}` will
-exist — that's the bundled artifact that ships in wheels. It's
-`.gitignore`d.
+The wheel ships a single `_cy.<EXT>` (the Cython extension with
+libsparea statically linked in); no separate dylib.
 
 ## Building and testing locally
 
@@ -59,18 +61,14 @@ just test       # reinstall + uv run pytest
 just wheel      # uv build
 ```
 
-The `zig build` step is wired into the hatchling build backend via
-`src/hatch_build.py` (`[tool.hatch.build.targets.wheel.hooks.custom]`),
-so every install path — `uv sync`, `uv build`, `pip wheel .`,
-cibuildwheel — triggers it automatically. The Zig toolchain itself
-is a build-system dep (`ziglang>=0.15.2` in
-`[build-system].requires`), so no host-level Zig install is needed
-anywhere. Local dev uses non-editable installs (`UV_NO_EDITABLE=1`
-at the top of the justfile) so the dylib lands in site-packages
-alongside `sparea/__init__.py`, where the ctypes loader expects it.
-`just test` chains through `just reinstall`, which clears uv's wheel
-cache and force-reinstalls sparea — so a stale zig artifact never
-silently survives a test run.
+`uv sync` invokes meson-python, which runs Zig (via `python -m
+ziglang build`, since `ziglang` is in `[build-system].requires`),
+then cythonizes `src/cython/_cy.pyx` and links the result against
+the Zig static archive. No host-level Zig or Cython install needed —
+both come from PyPI as build deps. Local dev uses non-editable
+installs (`UV_NO_EDITABLE=1` at the top of the justfile) so each
+edit force-reinstalls; `just test` chains through `just reinstall`
+to make sure stale artifacts don't survive a test run.
 
 ## Bumping the sparea_zig version
 

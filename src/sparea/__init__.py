@@ -5,6 +5,16 @@ import numpy as np
 from . import _cy  # Cython extension
 
 
+# Deprecated since 0.2.0: the binding now raises plain `ValueError`
+# (the Cython extension can't easily preserve a multi-class hierarchy
+# without significant boilerplate). Aliased so existing
+# `except SpareaError:` / `except AntipodalEdgeError:` blocks keep
+# working — they'll just match every ValueError. Remove in 0.3.0.
+SpareaError = ValueError
+AntipodalEdgeError = ValueError
+TooFewVerticesError = ValueError
+
+
 def polygon_area(verts) -> float:
     """Area in steradians of a spherical polygon on the unit sphere.
 
@@ -38,4 +48,9 @@ def polygon_area(verts) -> float:
     return _cy.polygon_area(arr)
 
 
-__all__ = ["polygon_area"]
+__all__ = [
+    "polygon_area",
+    "SpareaError",
+    "AntipodalEdgeError",
+    "TooFewVerticesError",
+]
