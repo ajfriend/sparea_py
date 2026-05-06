@@ -98,6 +98,39 @@ MSVC flags don't enable LTCG aggressively enough to perform the
 re-fusion. (You could probably trigger the same bug on those branches
 by switching them to meson-python.)
 
+#### What other LLVM-shipping projects do
+
+The canonical fix used by Wine/MinGW for the same problem (msvcrt
+also lacks `sincos`) is to **compile the LLVM-side library** with
+`-fno-builtin-sin -fno-builtin-cos -fno-builtin-sinf -fno-builtin-cosf`.
+This prevents the fusion from happening in the first place — the
+symbol is never emitted, no shim needed
+([Wine MinGW thread](https://www.mail-archive.com/mingw-w64-public@lists.sourceforge.net/msg18719.html),
+[LLVM #27364](https://github.com/llvm/llvm-project/issues/27364)).
+
+That fix doesn't translate cleanly to our setup because:
+- Zig's CLI doesn't expose `-fno-builtin-*` for Zig source compilation
+  (only `zig cc` does, for C source).
+- Zig's policy ([zig#11600](https://github.com/ziglang/zig/issues/11600))
+  is to ship missing math symbols in `compiler_rt` rather than disable
+  LLVM emission. `compiler_rt` doesn't yet include `sincos` for the
+  `*-windows-msvc` triple.
+
+Other approaches in the wild:
+- `#pragma function(sin, cos)` (MSVC) — forces real calls instead of
+  intrinsics, but does NOT prevent LTCG cross-TU fusion.
+- Compile the shim TU with `/GL-` (no whole-program-opt) — works,
+  but meson-python doesn't give us per-TU compile-flag control.
+- Pull `sincos` from MinGW's `libmingwex` or vcpkg — adds a runtime
+  dep on a separate library.
+
+The volatile-fn-pointer trick we ended up with appears to be novel
+(no prior published example found in the LLVM/Rust/Zig ecosystems),
+but it's structurally sound: an indirect call through a volatile
+function pointer is a pattern the optimizer cannot match back to
+`sincos`. Closest documented prior art is the Wine/MinGW fix at the
+producer side.
+
 ## Code shape comparison
 
 For just the binding source code — Python wrapper isn't shown, it's
