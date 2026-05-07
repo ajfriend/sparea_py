@@ -65,10 +65,30 @@ jobs:
       # Windows it expects uv on the host PATH.
       - uses: astral-sh/setup-uv@v8.1.0
 
-      # setup-uv puts the cache on D:\a\_temp by default, but Python's
-      # build-env temp dir lives on C:\. Hardlinks can't cross drives,
-      # so uv falls back to copy and ziglang's ~50MB toolchain takes
-      # ~48s/wheel to install. Pin the cache to %LOCALAPPDATA% on C:.
+      # Pin uv's cache to C: on Windows so hardlinks work.
+      #
+      # setup-uv defaults UV_CACHE_DIR to ${RUNNER_TEMP}/setup-uv-cache,
+      # which on GitHub-hosted Windows runners is D:\a\_temp\... .
+      # cibuildwheel's `build[uv]` frontend creates Python's isolated
+      # build env via tempfile.gettempdir(), which on Windows resolves
+      # to C:\Users\runneradmin\AppData\Local\Temp\... . NTFS doesn't
+      # support hardlinks across drives, so uv falls back to full file
+      # copy ("Failed to hard link ... os error 17; falling back to
+      # copy"). For build-isolation envs containing a chunky toolchain
+      # like ziglang (~50MB, hundreds of small files, PE binaries that
+      # Defender deep-scans), that's ~48s per wheel install vs ~8s
+      # when hardlinking works.
+      #
+      # Pinning UV_CACHE_DIR to %LOCALAPPDATA% (always on C:) puts the
+      # cache on the same drive as the build env and restores
+      # hardlinking. Measured impact in this repo: Windows wheels lane
+      # 580s → 291s (~50%).
+      #
+      # Tracking upstream (acknowledged but not fixed; eifinger himself
+      # tried in setup-uv#451 and reverted in #460):
+      #   https://github.com/astral-sh/setup-uv/issues/227
+      #   https://github.com/astral-sh/setup-uv/issues/371
+      #   https://github.com/astral-sh/setup-uv/pull/451
       - if: runner.os == 'Windows'
         shell: pwsh
         run: |
