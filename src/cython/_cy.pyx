@@ -14,7 +14,7 @@ cdef extern from *:
 
 def area(double[:, ::1] verts not None, int algo, int signed) -> float:
     if verts.shape[1] != 3:
-        raise ValueError("verts must be a 2-D array of shape (N, 3)")
+        raise ValueError('verts must be a 2-D array of shape (N, 3)')
 
     cdef double out
     cdef int err = sparea_polygon_area_vec3(&verts[0, 0], verts.shape[0], algo, signed, &out)
@@ -23,11 +23,11 @@ def area(double[:, ::1] verts not None, int algo, int signed) -> float:
         return out
     if err == 1:
         raise ValueError(
-            "polygon contains an antipodal or near-antipodal edge "
-            "(consecutive vertices ~180° apart)"
+            'polygon contains an antipodal or near-antipodal edge '
+            '(consecutive vertices ~180° apart)'
         )
     if err == 2:
-        raise ValueError("polygon needs at least 3 vertices to bound a region")
+        raise ValueError('polygon needs at least 3 vertices to bound a region')
     if err == 3:
-        raise ValueError(f"sparea: bad algo code {algo}")
-    raise ValueError(f"sparea: unknown error code {err}")
+        raise ValueError(f'sparea: bad algo code {algo}')
+    raise ValueError(f'sparea: unknown error code {err}')

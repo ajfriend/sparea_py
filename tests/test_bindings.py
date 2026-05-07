@@ -30,8 +30,8 @@ HALF_SPHERE = np.array([
 ])
 
 
-@pytest.mark.parametrize("verts,geo", [(OCTANT, "latlng"), (OCTANT_XYZ, "vec3")])
-@pytest.mark.parametrize("algo", ["auto", "cross", "angle"])
+@pytest.mark.parametrize('verts,geo', [(OCTANT, 'latlng'), (OCTANT_XYZ, 'vec3')])
+@pytest.mark.parametrize('algo', ['auto', 'cross', 'angle'])
 def test_octant_area(verts, geo, algo):
     assert math.isclose(
         sp.area(verts, geo=geo, algo=algo), math.pi / 2, abs_tol=1e-13
@@ -40,7 +40,7 @@ def test_octant_area(verts, geo, algo):
 
 def test_xyz_matches_latlng():
     a_latlng = sp.area(OCTANT)
-    a_xyz = sp.area(OCTANT_XYZ, geo="vec3")
+    a_xyz = sp.area(OCTANT_XYZ, geo='vec3')
     assert math.isclose(a_latlng, a_xyz, abs_tol=1e-14)
 
 
@@ -67,26 +67,26 @@ def test_accepts_python_list_latlng():
 def test_accepts_python_list_vec3():
     verts = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
     assert math.isclose(
-        sp.area(verts, geo="vec3"), math.pi / 2, abs_tol=1e-14
+        sp.area(verts, geo='vec3'), math.pi / 2, abs_tol=1e-14
     )
 
 
 def test_invalid_geo():
-    with pytest.raises(ValueError, match="geo must be"):
-        sp.area(OCTANT, geo="xyz")
+    with pytest.raises(ValueError, match='geo must be'):
+        sp.area(OCTANT, geo='xyz')
 
 
 def test_invalid_algo():
-    with pytest.raises(ValueError, match="algo must be"):
-        sp.area(OCTANT, algo="bogus")
+    with pytest.raises(ValueError, match='algo must be'):
+        sp.area(OCTANT, algo='bogus')
 
 
-@pytest.mark.parametrize("verts,geo,cols", [
-    (OCTANT_XYZ, "latlng", 2),  # 3 cols passed for geo='latlng'
-    (OCTANT,     "vec3",   3),  # 2 cols passed for geo='vec3'
+@pytest.mark.parametrize('verts,geo,cols', [
+    (OCTANT_XYZ, 'latlng', 2),  # 3 cols passed for geo='latlng'
+    (OCTANT,     'vec3',   3),  # 2 cols passed for geo='vec3'
 ])
 def test_shape_mismatch(verts, geo, cols):
-    with pytest.raises(ValueError, match=rf"\(N, {cols}\)"):
+    with pytest.raises(ValueError, match=rf'\(N, {cols}\)'):
         sp.area(verts, geo=geo)
 
 
@@ -95,21 +95,21 @@ def test_shape_not_2d():
         sp.area(np.zeros(6))
 
 
-@pytest.mark.parametrize("verts,geo", [
-    (np.array([[0.0, 0.0], [0.0, math.pi / 2]]), "latlng"),
-    (np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]), "vec3"),
+@pytest.mark.parametrize('verts,geo', [
+    (np.array([[0.0, 0.0], [0.0, math.pi / 2]]), 'latlng'),
+    (np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]), 'vec3'),
 ])
 def test_too_few_vertices(verts, geo):
-    with pytest.raises(ValueError, match="at least 3"):
+    with pytest.raises(ValueError, match='at least 3'):
         sp.area(verts, geo=geo)
 
 
-@pytest.mark.parametrize("verts,geo", [
-    (np.array([[0.0, 0.0], [0.0, math.pi], [math.pi / 2, 0.0]]), "latlng"),
-    (np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), "vec3"),
+@pytest.mark.parametrize('verts,geo', [
+    (np.array([[0.0, 0.0], [0.0, math.pi], [math.pi / 2, 0.0]]), 'latlng'),
+    (np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), 'vec3'),
 ])
 def test_antipodal_edge(verts, geo):
-    with pytest.raises(ValueError, match="antipodal"):
+    with pytest.raises(ValueError, match='antipodal'):
         sp.area(verts, geo=geo)
 
 

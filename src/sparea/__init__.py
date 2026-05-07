@@ -4,15 +4,15 @@ import numpy as np
 
 from . import _cy  # Cython extension
 
-_GEO_COLS = {"latlng": 2, "vec3": 3}
-_ALGO = {"auto": 0, "cross": 1, "angle": 2}
+_GEO_COLS = {'latlng': 2, 'vec3': 3}
+_ALGO = {'auto': 0, 'cross': 1, 'angle': 2}
 
 
 def area(
     verts,
     *,
-    geo: str = "latlng",
-    algo: str = "auto",
+    geo: str = 'latlng',
+    algo: str = 'auto',
     signed: bool = False,
 ) -> float:
     """Area in steradians of a spherical polygon on the unit sphere.
@@ -58,11 +58,11 @@ def area(
     cols = _GEO_COLS[geo]
     if arr.ndim != 2 or arr.shape[1] != cols:
         raise ValueError(
-            f"verts must be a 2-D array with shape (N, {cols}) for "
-            f"geo={geo!r}, got shape {arr.shape}"
+            f'verts must be a 2-D array with shape (N, {cols}) for '
+            f'geo={geo!r}, got shape {arr.shape}'
         )
 
-    if geo == "latlng":
+    if geo == 'latlng':
         lat = arr[:, 0]
         lng = arr[:, 1]
         cl = np.cos(lat)
@@ -72,4 +72,4 @@ def area(
     return _cy.area(arr, _ALGO[algo], bool(signed))
 
 
-__all__ = ["area"]
+__all__ = ['area']
