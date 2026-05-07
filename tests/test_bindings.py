@@ -3,123 +3,122 @@ import math
 import numpy as np
 import pytest
 
-from sparea import polygon_area
+import sparea as sp
 
 
 # Octant triangle (north pole + two equator points 90° apart).
 OCTANT = np.array([
-    [0.0,           0.0],            # (1, 0, 0)
-    [0.0,           math.pi / 2],    # (0, 1, 0)
-    [math.pi / 2,   0.0],            # (0, 0, 1)
+    [0.0,         0.0],            # (1, 0, 0)
+    [0.0,         math.pi / 2],    # (0, 1, 0)
+    [math.pi / 2, 0.0],            # (0, 0, 1)
 ])
 
-
-def test_octant_triangle():
-    assert math.isclose(polygon_area(OCTANT), math.pi / 2, abs_tol=1e-13)
-
-
-def test_two_octant_polygon():
-    verts = np.array([
-        [0.0,         0.0],            # (1, 0, 0)
-        [0.0,         math.pi / 2],    # (0, 1, 0)
-        [math.pi / 2, 0.0],            # (0, 0, 1)
-        [0.0,        -math.pi / 2],    # (0, -1, 0)
-    ])
-    assert math.isclose(polygon_area(verts), math.pi, abs_tol=1e-13)
-
-
-def test_orientation_flip_is_complement():
-    # Reversing the traversal yields the area of the complementary
-    # region: 4π − interior.
-    forward = polygon_area(OCTANT)
-    reverse = polygon_area(OCTANT[::-1])
-    assert math.isclose(forward + reverse, 4 * math.pi, abs_tol=1e-13)
-
-
-def test_accepts_python_list():
-    verts = [
-        (0.0,           0.0),
-        (0.0,           math.pi / 2),
-        (math.pi / 2,   0.0),
-    ]
-    assert math.isclose(polygon_area(verts), math.pi / 2, abs_tol=1e-13)
-
-
-def test_too_few_vertices_raises():
-    verts = np.array([[0.0, 0.0], [0.0, math.pi / 2]])
-    with pytest.raises(ValueError):
-        polygon_area(verts)
-
-
-def test_too_few_vertices_error_is_value_error():
-    verts = np.array([[0.0, 0.0]])
-    with pytest.raises(ValueError):
-        polygon_area(verts)
-
-
-def test_wrong_shape_raises():
-    # (N, 2) and (N, 3) are valid; anything else is not.
-    with pytest.raises(ValueError):
-        polygon_area(np.zeros((3, 4)))
-    with pytest.raises(ValueError):
-        polygon_area(np.zeros((3, 1)))
-
-
-# Octant triangle expressed as unit xyz vectors instead of lat/lng.
 OCTANT_XYZ = np.array([
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     [0.0, 0.0, 1.0],
 ])
 
+# Hemisphere polygon — vertices straddle the equator so the centroid
+# fan is not well-conditioned, forcing auto-dispatch onto the angle
+# kernel. Area = π (half the sphere).
+HALF_SPHERE = np.array([
+    [0.0,         0.0],            # (1,  0, 0)
+    [0.0,         math.pi / 2],    # (0,  1, 0)
+    [math.pi / 2, 0.0],            # (0,  0, 1)
+    [0.0,        -math.pi / 2],    # (0, -1, 0)
+])
 
-def test_octant_triangle_xyz():
-    assert math.isclose(polygon_area(OCTANT_XYZ), math.pi / 2, abs_tol=1e-14)
+
+@pytest.mark.parametrize("verts,geo", [(OCTANT, "latlng"), (OCTANT_XYZ, "vec3")])
+@pytest.mark.parametrize("algo", ["auto", "cross", "angle"])
+def test_octant_area(verts, geo, algo):
+    assert math.isclose(
+        sp.area(verts, geo=geo, algo=algo), math.pi / 2, abs_tol=1e-13
+    )
 
 
 def test_xyz_matches_latlng():
-    # Same polygon, two input forms — should agree to f64 noise.
-    a_latlng = polygon_area(OCTANT)
-    a_xyz = polygon_area(OCTANT_XYZ)
+    a_latlng = sp.area(OCTANT)
+    a_xyz = sp.area(OCTANT_XYZ, geo="vec3")
     assert math.isclose(a_latlng, a_xyz, abs_tol=1e-14)
 
 
-def test_xyz_accepts_python_list():
+def test_half_sphere_auto_routes_to_angle():
+    # Not hemisphere-contained — `auto` falls back to the angle kernel.
+    assert math.isclose(sp.area(HALF_SPHERE), math.pi, abs_tol=1e-13)
+
+
+def test_orientation_flip_is_complement():
+    fwd = sp.area(OCTANT)
+    rev = sp.area(OCTANT[::-1])
+    assert math.isclose(fwd + rev, 4 * math.pi, abs_tol=1e-13)
+
+
+def test_accepts_python_list_latlng():
+    verts = [
+        (0.0,         0.0),
+        (0.0,         math.pi / 2),
+        (math.pi / 2, 0.0),
+    ]
+    assert math.isclose(sp.area(verts), math.pi / 2, abs_tol=1e-13)
+
+
+def test_accepts_python_list_vec3():
     verts = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
-    assert math.isclose(polygon_area(verts), math.pi / 2, abs_tol=1e-14)
+    assert math.isclose(
+        sp.area(verts, geo="vec3"), math.pi / 2, abs_tol=1e-14
+    )
 
 
-def test_xyz_too_few_vertices_raises():
+def test_invalid_geo():
+    with pytest.raises(ValueError, match="geo must be"):
+        sp.area(OCTANT, geo="xyz")
+
+
+def test_invalid_algo():
+    with pytest.raises(ValueError, match="algo must be"):
+        sp.area(OCTANT, algo="bogus")
+
+
+@pytest.mark.parametrize("verts,geo,cols", [
+    (OCTANT_XYZ, "latlng", 2),  # 3 cols passed for geo='latlng'
+    (OCTANT,     "vec3",   3),  # 2 cols passed for geo='vec3'
+])
+def test_shape_mismatch(verts, geo, cols):
+    with pytest.raises(ValueError, match=rf"\(N, {cols}\)"):
+        sp.area(verts, geo=geo)
+
+
+def test_shape_not_2d():
     with pytest.raises(ValueError):
-        polygon_area(np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]))
+        sp.area(np.zeros(6))
 
 
-def test_xyz_antipodal_edge_raises():
-    verts = np.array([
-        [1.0,  0.0, 0.0],
-        [-1.0, 0.0, 0.0],
-        [0.0,  0.0, 1.0],
-    ])
-    with pytest.raises(ValueError):
-        polygon_area(verts)
+@pytest.mark.parametrize("verts,geo", [
+    (np.array([[0.0, 0.0], [0.0, math.pi / 2]]), "latlng"),
+    (np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]), "vec3"),
+])
+def test_too_few_vertices(verts, geo):
+    with pytest.raises(ValueError, match="at least 3"):
+        sp.area(verts, geo=geo)
 
 
-def test_antipodal_edge_raises():
-    # (1,0,0) → (-1,0,0) is antipodal; geodesic ambiguous.
-    verts = np.array([
-        [0.0,         0.0],         # (1, 0, 0)
-        [0.0,         math.pi],     # (-1, 0, 0)
-        [math.pi / 2, 0.0],         # (0, 0, 1)
-    ])
-    with pytest.raises(ValueError):
-        polygon_area(verts)
+@pytest.mark.parametrize("verts,geo", [
+    (np.array([[0.0, 0.0], [0.0, math.pi], [math.pi / 2, 0.0]]), "latlng"),
+    (np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), "vec3"),
+])
+def test_antipodal_edge(verts, geo):
+    with pytest.raises(ValueError, match="antipodal"):
+        sp.area(verts, geo=geo)
 
 
-def test_antipodal_edge_error_is_value_error():
-    verts = np.array([
-        [0.0,         0.0],
-        [0.0,         math.pi],
-        [math.pi / 2, 0.0],
-    ])
-    with pytest.raises(ValueError):
-        polygon_area(verts)
+def test_signed_returns_negative_for_reversed_orientation():
+    # CCW from outside the sphere ⇒ +π/2; reversing the traversal
+    # ⇒ −π/2. Default `signed=False` would fold the negative into
+    # 4π − π/2; `signed=True` keeps it raw.
+    fwd = sp.area(OCTANT, signed=True)
+    rev = sp.area(OCTANT[::-1], signed=True)
+    assert math.isclose(fwd, math.pi / 2, abs_tol=1e-13)
+    assert math.isclose(rev, -math.pi / 2, abs_tol=1e-13)
+    assert math.isclose(fwd + rev, 0.0, abs_tol=1e-13)

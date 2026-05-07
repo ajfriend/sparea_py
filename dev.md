@@ -22,6 +22,10 @@ intentional:
   (`sparea_polygon_area_vec3`), builds a static archive, and links
   it directly into the Cython extension `_cy.<EXT>`.
 
+The C ABI takes `algo` and `signed` as int scalars and forwards
+them to upstream's `sparea.polygon_area(verts, .{ .algo, .signed })`
+— no replicated dispatch or validation logic on this side.
+
 libsparea is a **static** archive (not a shared library) so it gets
 pulled into `_cy.so` / `_cy.pyd` at link time. That sidesteps both
 the Windows MSVC CRT mismatch and the macOS dylib `__dso_handle`
@@ -38,10 +42,10 @@ the linked Zig issues there for details.
 ├── justfile                — reinstall / test / wheel / clean / purge
 ├── src/
 │   ├── cython/
-│   │   └── _cy.pyx         — Cython binding, exposes polygon_area
+│   │   └── _cy.pyx         — Cython binding, exposes _cy.area
 │   ├── sparea/
-│   │   └── __init__.py     — Python wrapper: shape-check + lat/lng→xyz
-│   │                         numpy trig + delegate to _cy
+│   │   └── __init__.py     — Python wrapper: validates geo + algo,
+│   │                         lat/lng→xyz with numpy trig, delegates to _cy
 │   └── zig/
 │       ├── build.zig       — produces libsparea.{a,lib} (static archive)
 │       ├── build.zig.zon   — pins the sparea_zig dependency

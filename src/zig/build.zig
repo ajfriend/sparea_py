@@ -1,7 +1,7 @@
-//! Builds libsparea.{dylib,so,dll}: a shared library that exposes the
-//! sparea Zig package's polygon-area function via a C ABI for the
-//! Python ctypes wrapper. The upstream sparea Zig source is fetched
-//! by `zig build` from the URL pinned in build.zig.zon.
+//! Builds libsparea.{a,lib}: a static archive that exposes the sparea
+//! Zig package's polygon-area function via a C ABI for the Cython
+//! extension to link against. The upstream sparea Zig source is
+//! fetched by `zig build` from the URL pinned in build.zig.zon.
 
 const std = @import("std");
 

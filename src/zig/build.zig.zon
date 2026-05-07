@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.15.2",
     .dependencies = .{
         .sparea = .{
-            .url = "https://github.com/ajfriend/sparea_zig/archive/refs/tags/v0.3.0.tar.gz",
-            .hash = "sparea-0.3.0-OYn1hQbDAAC8aGGCdTwRpTsgVoe_fhHkuVpD6a-b9WzQ",
+            .url = "https://github.com/ajfriend/sparea_zig/archive/refs/tags/v0.5.0.tar.gz",
+            .hash = "sparea-0.5.0-OYn1hV7AAAAdiUC2mhKzPivM0Qqt_c4kbqSls7p2k7uN",
         },
     },
     .paths = .{

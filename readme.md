@@ -11,25 +11,37 @@ Zig library for computing the area of spherical polygons.
 
 ```python
 import math
-from sparea import polygon_area
+import sparea as sp
 
 # Octant triangle: equator at lng=0, equator at lng=π/2, north pole.
-# Vertices may be either (lat, lng) in radians or unit (x, y, z).
-polygon_area([
+sp.area([
     (0.0,         0.0),
     (0.0,         math.pi / 2),
     (math.pi / 2, 0.0),
 ])  # ≈ pi / 2
 
-polygon_area([
+# Same polygon expressed as unit (x, y, z) vectors.
+sp.area([
     (1.0, 0.0, 0.0),
     (0.0, 1.0, 0.0),
     (0.0, 0.0, 1.0),
-])  # ≈ pi / 2
+], geo='vec3')  # ≈ pi / 2
 ```
 
-The result is in steradians, in `[0, 4π)`. Reverse the vertex order
-to get the complementary region (`4π − interior`).
+`sp.area` accepts three keyword arguments:
+
+- `geo`: input convention. `'latlng'` (default) — each row is
+  `(lat, lng)` in radians. `'vec3'` — each row is a unit `(x, y, z)`.
+  The number of input columns must match.
+- `algo`: kernel selection. `'auto'` (default) dispatches between a
+  cross-product centroid-fan path (for hemisphere-contained polygons)
+  and a per-edge angle formula. `'cross'` and `'angle'` force the
+  named kernel.
+- `signed`: output sign convention. `False` (default) folds the
+  result into `[0, 4π)` — reversing the vertex order yields the
+  complementary region (`4π − interior`). `True` returns the raw
+  signed kernel value (positive for CCW-from-outside, negative
+  otherwise).
 
 ## Installing
 
