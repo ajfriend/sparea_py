@@ -20,6 +20,10 @@ ci-test:
 wheel:
     uv build
 
+# Open JupyterLab for interactive experimentation with sparea.
+lab:
+    uv run --group lab jupyter lab
+
 purge:
     just _rm .venv
     just _rm '*.pytest_cache'
