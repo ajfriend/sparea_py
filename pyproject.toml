@@ -61,6 +61,10 @@ sparea = ["src/sparea", "*/site-packages/sparea"]
 
 
 [tool.cibuildwheel]
+# uv installs the build deps (meson-python, ziglang, cython, numpy)
+# faster than pip — saves ~20-30s per wheel build env, ~10 min total
+# across the matrix.
+build-frontend = "build[uv]"
 test-requires = ["pytest", "numpy"]
 # Override pyproject.toml's addopts (which assume pytest-cov) — the
 # coverage gate runs once in test.yml; repeating it 35× across every
