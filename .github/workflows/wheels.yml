@@ -68,6 +68,9 @@ jobs:
       - uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_ARCHS: ${{ matrix.archs }}
+          # diagnostic: trace per-step uv invocations to debug Windows
+          # build-frontend slowdown — revert before next release
+          CIBW_BUILD_VERBOSITY: "3"
 
       - uses: actions/upload-artifact@v6
         with:
