@@ -65,6 +65,16 @@ jobs:
       # Windows it expects uv on the host PATH.
       - uses: astral-sh/setup-uv@v8.1.0
 
+      # setup-uv puts the cache on D:\a\_temp by default, but Python's
+      # build-env temp dir lives on C:\. Hardlinks can't cross drives,
+      # so uv falls back to copy and ziglang's ~50MB toolchain takes
+      # ~48s/wheel to install. Pin the cache to %LOCALAPPDATA% on C:.
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cache = Join-Path $env:LOCALAPPDATA 'uv-cache'
+          "UV_CACHE_DIR=$cache" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_ARCHS: ${{ matrix.archs }}
