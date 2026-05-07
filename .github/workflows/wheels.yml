@@ -60,6 +60,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # cibuildwheel uses uv as the build frontend; on Linux it
+      # bootstraps uv inside the manylinux container, but on macOS /
+      # Windows it expects uv on the host PATH.
+      - uses: astral-sh/setup-uv@v8.1.0
+
       - uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_ARCHS: ${{ matrix.archs }}
