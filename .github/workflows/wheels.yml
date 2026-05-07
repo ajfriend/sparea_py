@@ -42,20 +42,51 @@ jobs:
           compression-level: 0
 
   wheels:
-    name: ${{ matrix.os }} (${{ matrix.archs }})
+    # One job per build identifier — splits the wheel matrix at the
+    # finest granularity so build wall-clock approaches max(per-wheel
+    # build time) instead of sum. Free for public repos on GitHub
+    # Actions runner-minutes; meaningfully faster on release where
+    # the bottleneck before was Windows building 5 wheels serially.
+    name: ${{ matrix.only }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            archs: x86_64
-          - os: ubuntu-24.04-arm
-            archs: aarch64
-          - os: macos-latest     # Apple Silicon
-            archs: arm64
-          - os: windows-latest
-            archs: AMD64
+          # Linux x86_64 (manylinux + musllinux)
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp311-manylinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp312-manylinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp313-manylinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp314-manylinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp314t-manylinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp311-musllinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp312-musllinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp313-musllinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp314-musllinux_x86_64 }
+          - { os: ubuntu-latest,    archs: x86_64,  only: cp314t-musllinux_x86_64 }
+          # Linux aarch64
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp311-manylinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp312-manylinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp313-manylinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp314-manylinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp314t-manylinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp311-musllinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp312-musllinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp313-musllinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp314-musllinux_aarch64 }
+          - { os: ubuntu-24.04-arm, archs: aarch64, only: cp314t-musllinux_aarch64 }
+          # macOS arm64
+          - { os: macos-latest,     archs: arm64,   only: cp311-macosx_arm64 }
+          - { os: macos-latest,     archs: arm64,   only: cp312-macosx_arm64 }
+          - { os: macos-latest,     archs: arm64,   only: cp313-macosx_arm64 }
+          - { os: macos-latest,     archs: arm64,   only: cp314-macosx_arm64 }
+          - { os: macos-latest,     archs: arm64,   only: cp314t-macosx_arm64 }
+          # Windows AMD64
+          - { os: windows-latest,   archs: AMD64,   only: cp311-win_amd64 }
+          - { os: windows-latest,   archs: AMD64,   only: cp312-win_amd64 }
+          - { os: windows-latest,   archs: AMD64,   only: cp313-win_amd64 }
+          - { os: windows-latest,   archs: AMD64,   only: cp314-win_amd64 }
+          - { os: windows-latest,   archs: AMD64,   only: cp314t-win_amd64 }
 
     steps:
       - uses: actions/checkout@v6
@@ -96,12 +127,12 @@ jobs:
           "UV_CACHE_DIR=$cache" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - uses: pypa/cibuildwheel@v3.4.1
-        env:
-          CIBW_ARCHS: ${{ matrix.archs }}
+        with:
+          only: ${{ matrix.only }}
 
       - uses: actions/upload-artifact@v6
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.archs }}
+          name: wheels-${{ matrix.only }}
           path: wheelhouse/*.whl
           compression-level: 0
 
