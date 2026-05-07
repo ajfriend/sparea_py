@@ -4,7 +4,7 @@ import numpy as np
 
 from . import _cy  # Cython extension
 
-_GEO_COLS = {'latlng': 2, 'vec3': 3}
+_GEO_COLS = {'latlng': 2, 'latlng_deg': 2, 'latlng_rad': 2, 'vec3': 3}
 _ALGO = {'auto': 0, 'cross': 1, 'angle': 2}
 
 
@@ -21,10 +21,12 @@ def area(
         verts: 2-D array-like of vertices. Anything numpy can normalize
             to a contiguous float64 matrix (list of tuples, list of
             lists, ndarray, memoryview, ...) is accepted. The number
-            of columns must match `geo`: 2 for `'latlng'`, 3 for
-            `'vec3'`.
+            of columns must match `geo`: 2 for the `latlng` family,
+            3 for `'vec3'`.
         geo: input convention.
-            `'latlng'` (default): each row is `(lat, lng)` in radians.
+            `'latlng'` (default) and `'latlng_deg'`: each row is
+                `(lat, lng)` in **degrees** — matching h3's convention.
+            `'latlng_rad'`: each row is `(lat, lng)` in radians.
             `'vec3'`: each row is a unit `(x, y, z)` on the sphere.
         algo: kernel selection.
             `'auto'` (default): hemisphere-contained polygons take the
@@ -48,7 +50,9 @@ def area(
             antipodal edge, or fewer than 3 vertices.
     """
     if geo not in _GEO_COLS:
-        raise ValueError(f"geo must be 'latlng' or 'vec3', got {geo!r}")
+        raise ValueError(
+            f"geo must be one of {sorted(_GEO_COLS)}, got {geo!r}"
+        )
     if algo not in _ALGO:
         raise ValueError(
             f"algo must be 'auto', 'cross', or 'angle', got {algo!r}"
@@ -62,9 +66,12 @@ def area(
             f'geo={geo!r}, got shape {arr.shape}'
         )
 
-    if geo == 'latlng':
+    if geo != 'vec3':
         lat = arr[:, 0]
         lng = arr[:, 1]
+        if geo != 'latlng_rad':
+            lat = np.radians(lat)
+            lng = np.radians(lng)
         cl = np.cos(lat)
         # column_stack returns a fresh C-contiguous (N, 3) f64.
         arr = np.column_stack([cl * np.cos(lng), cl * np.sin(lng), np.sin(lat)])

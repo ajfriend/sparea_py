@@ -10,14 +10,13 @@ Python bindings for [sparea_zig](https://github.com/ajfriend/sparea_zig), a
 Zig library for computing the area of spherical polygons.
 
 ```python
-import math
 import sparea as sp
 
-# Octant triangle: equator at lng=0, equator at lng=π/2, north pole.
+# Octant triangle: equator at lng=0, equator at lng=90°, north pole.
 sp.area([
-    (0.0,         0.0),
-    (0.0,         math.pi / 2),
-    (math.pi / 2, 0.0),
+    (0.0,  0.0),
+    (0.0, 90.0),
+    (90.0, 0.0),
 ])  # ≈ pi / 2
 
 # Same polygon expressed as unit (x, y, z) vectors.
@@ -30,9 +29,14 @@ sp.area([
 
 `sp.area` accepts three keyword arguments:
 
-- `geo`: input convention. `'latlng'` (default) — each row is
-  `(lat, lng)` in radians. `'vec3'` — each row is a unit `(x, y, z)`.
-  The number of input columns must match.
+- `geo`: input convention.
+  - `'latlng'` (default) and `'latlng_deg'` — each row is
+    `(lat, lng)` in **degrees** (matching h3's convention).
+  - `'latlng_rad'` — each row is `(lat, lng)` in radians.
+  - `'vec3'` — each row is a unit `(x, y, z)`.
+
+  The number of input columns must match (2 for the `latlng` family,
+  3 for `vec3`).
 - `algo`: kernel selection. `'auto'` (default) dispatches between a
   cross-product centroid-fan path (for hemisphere-contained polygons)
   and a per-edge angle formula. `'cross'` and `'angle'` force the
