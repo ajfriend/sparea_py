@@ -47,6 +47,16 @@ sp.area([
   signed kernel value (positive for CCW-from-outside, negative
   otherwise).
 
+## Cross-check against H3
+
+```python
+import sparea as sp
+import h3
+
+h = h3.latlng_to_cell(37.7749, -122.4194, 9)
+diff = h3.cell_area(h, unit='rads^2') - sp.area(h3.cell_to_boundary(h))
+```
+
 ## Installing
 
 ```sh
